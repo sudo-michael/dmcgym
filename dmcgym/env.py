@@ -10,6 +10,7 @@ import gym
 import numpy as np
 from gym import spaces
 
+from robopianist.wrappers.safe_wrapper import SafeTimeStep
 
 def dmc_spec2gym_space(spec):
     if isinstance(spec, OrderedDict) or isinstance(spec, dict):
@@ -90,9 +91,23 @@ class DMCGYM(gym.core.Env):
         done = time_step.last()
         obs = time_step.observation
 
+
         info = {}
+        info['cost'] = 0.0
+        if isinstance(time_step, SafeTimeStep):
+            info['cost'] = time_step.cost
+            
+
         if done and time_step.discount == 1.0:
             info['TimeLimit.truncated'] = True
+            # flatten out dict for monitor
+            musical_metrics = self._env.get_musical_metrics()
+            info['precision'] = musical_metrics['precision']
+            info['recall'] = musical_metrics['recall']
+            info['f1'] = musical_metrics['f1']
+            info['sustain_precision'] = musical_metrics['sustain_precision']
+            info['sustain_recall'] = musical_metrics['sustain_recall']
+            info['sustain_f1'] = musical_metrics['sustain_f1']
 
         return dmc_obs2gym_obs(obs), reward, done, info
 
